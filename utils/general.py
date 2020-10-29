@@ -838,10 +838,15 @@ def build_targets(p, targets, model):
             #         [False, False, False, False, False, False, False, False, False, True],
             #         [False, False, False, False, True, False, False, True, False, True]],
             # 假设j[2, 9]=True, 表示第3个anchor与第10个gt能匹配上.
-            # TODO: 打印这个j可以发现, 某一个gt对应多个anchor. 同时一个anchor也对应多个gt.
-            # j = wh_iou(anchors, t[:, 4:6]) > model.hyp['iou_t']  # iou(3,n)=wh_iou(anchors(3,2), gwh(n,2))
-            t = t[j]  # 该层匹配上的gt, 也即是这些gt由该层负责预测.
+            # TODO: 上面的代码为源代码, 打印这个j可以发现, 某一个gt对应多个anchor. 同时一个anchor也对应多个gt.
+            # 改成如下形式, 保证j每一行只有一个True
+            # j = torch.max(r, 1. / r).max(2)[0]
+            # min_value = j.min(1)[0][:, None].repeat(1, j.shape[1])
+            # other_value = torch.ones_like(min_value) * model.hyp['anchor_t'] * 2.0
+            # mask = torch.where(j == min_value, min_value, other_value)
+            # j = mask < model.hyp['anchor_t']
 
+            t = t[j]  # 该层匹配上的gt, 也即是这些gt由该层负责预测.
             # https://www.kaggle.com/c/global-wheat-detection/discussion/172436
             # 网络的3个附近点，不再是落在哪个网络就计算该网络anchor,而是依靠中心点的情况
             # 选择最最近的3个网格，作为落脚点，可以极大增加正样本数
