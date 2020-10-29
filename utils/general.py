@@ -831,7 +831,7 @@ def build_targets(p, targets, model):
             # 基于shape过滤后，就会出现某些gt仅仅和当前层的某几个anchor匹配，即可能出现某些gt仅仅和其中某个匹配，
             # 而不是和当前位置所有anchor匹配
             r = t[:, :, 4:6] / anchors[:, None]  # wh ratio 不考虑xy坐标, r.shape=[num_anchors, num_gts, 2]
-            j = torch.max(r, 1. / r).max(2)[0] < model.hyp['anchor_t']  # j.shape=[num_anchors, num_gts]
+            # j = torch.max(r, 1. / r).max(2)[0] < model.hyp['anchor_t']  # j.shape=[num_anchors, num_gts]
             # 假设3个anchor, 10个gt
             # j矩阵如下:
             # tensor([[False, False, False, False, False, False, False, False, False, False],
@@ -840,11 +840,11 @@ def build_targets(p, targets, model):
             # 假设j[2, 9]=True, 表示第3个anchor与第10个gt能匹配上.
             # TODO: 上面的代码为源代码, 打印这个j可以发现, 某一个gt对应多个anchor. 同时一个anchor也对应多个gt.
             # 改成如下形式, 保证j每一行只有一个True
-            # j = torch.max(r, 1. / r).max(2)[0]
-            # min_value = j.min(1)[0][:, None].repeat(1, j.shape[1])
-            # other_value = torch.ones_like(min_value) * model.hyp['anchor_t'] * 2.0
-            # mask = torch.where(j == min_value, min_value, other_value)
-            # j = mask < model.hyp['anchor_t']
+            j = torch.max(r, 1. / r).max(2)[0]
+            min_value = j.min(1)[0][:, None].repeat(1, j.shape[1])
+            other_value = torch.ones_like(min_value) * model.hyp['anchor_t'] * 2.0
+            mask = torch.where(j == min_value, min_value, other_value)
+            j = mask < model.hyp['anchor_t']
 
             t = t[j]  # 该层匹配上的gt, 也即是这些gt由该层负责预测.
             # https://www.kaggle.com/c/global-wheat-detection/discussion/172436
